@@ -34,3 +34,8 @@ Thumbs.db
 
 # Optional build outputs (frontend dist can be rebuilt with npm run build)
 # frontend/dist
+
+# Edara server config (contains API keys) - never commit
+backend/data/
+edaraServers.json
+*.tmp

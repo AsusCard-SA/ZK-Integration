@@ -7,7 +7,6 @@ import {
   Search, 
   Calendar, 
   Eye, 
-  EyeOff,
   ShieldCheck, 
   Code2, 
   Clock, 
@@ -55,7 +54,8 @@ export default function HRSyncPage({ users, attendances }) {
     name: '',
     url: '',
     apiKey: '',
-    enabled: true
+    enabled: false,
+    autoSync: false
   });
   const [formSaving, setFormSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -63,7 +63,6 @@ export default function HRSyncPage({ users, attendances }) {
   // Per-server testing state
   const [testingId, setTestingId] = useState(null);
   const [testResults, setTestResults] = useState({});
-  const [visibleKeyIds, setVisibleKeyIds] = useState({});
 
   // Sync state
   const [syncing, setSyncing] = useState(false);
@@ -143,7 +142,8 @@ export default function HRSyncPage({ users, attendances }) {
       name: '',
       url: 'https://ysqqnkbgkrjoxrzlejxy.supabase.co/functions/v1/api-zk-attendance',
       apiKey: '',
-      enabled: true
+      enabled: false,
+      autoSync: false
     });
     setFormError('');
     setIsFormOpen(true);
@@ -154,8 +154,9 @@ export default function HRSyncPage({ users, attendances }) {
     setFormData({
       name: server.name || '',
       url: server.url || '',
-      apiKey: server.apiKey || '',
-      enabled: server.enabled !== undefined ? server.enabled : true
+      apiKey: '',
+      enabled: server.enabled !== undefined ? server.enabled : false,
+      autoSync: server.autoSync !== false
     });
     setFormError('');
     setIsFormOpen(true);
@@ -177,7 +178,7 @@ export default function HRSyncPage({ users, attendances }) {
       setFormError(t('endpointUrlLabel') + ' is required');
       return;
     }
-    if (!formData.apiKey.trim()) {
+    if (!editingServerId && !formData.apiKey.trim()) {
       setFormError(t('apiKeyLabel') + ' is required');
       return;
     }
@@ -248,10 +249,6 @@ export default function HRSyncPage({ users, attendances }) {
     } finally {
       setTestingId(null);
     }
-  };
-
-  const toggleKeyVisibility = (serverId) => {
-    setVisibleKeyIds(prev => ({ ...prev, [serverId]: !prev[serverId] }));
   };
 
   // Dispatch attendance data to Edara
@@ -572,13 +569,14 @@ export default function HRSyncPage({ users, attendances }) {
                     {t('apiKeyLabel')} *
                   </label>
                   <input 
-                    type="text"
+                    type="password"
+                    autoComplete="new-password"
                     className="input mono"
-                    placeholder={t('apiKeyPlaceholder')}
+                    placeholder={editingServerId ? t('apiKeyKeepPlaceholder') : t('apiKeyPlaceholder')}
                     value={formData.apiKey}
                     onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
                     style={{ width: '100%', fontSize: '0.82rem' }}
-                    required
+                    required={!editingServerId}
                   />
                 </div>
 
@@ -593,6 +591,14 @@ export default function HRSyncPage({ users, attendances }) {
                       onChange={(e) => setFormData(prev => ({ ...prev, enabled: e.target.checked }))}
                     />
                     <span>{formData.enabled ? t('serverEnabled') : t('serverDisabled')}</span>
+                  </label>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem', marginTop: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.autoSync}
+                      onChange={(e) => setFormData(prev => ({ ...prev, autoSync: e.target.checked }))}
+                    />
+                    <span>{t('autoSyncLabel')}</span>
                   </label>
                 </div>
               </div>
@@ -621,7 +627,6 @@ export default function HRSyncPage({ users, attendances }) {
               {servers.map((server) => {
                 const isTesting = testingId === server.id;
                 const testResult = testResults[server.id];
-                const isKeyVisible = visibleKeyIds[server.id];
 
                 return (
                   <div 
@@ -667,15 +672,8 @@ export default function HRSyncPage({ users, attendances }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Lock size={12} color="#f59e0b" />
                           <span className="mono" style={{ color: 'var(--text-muted)' }}>
-                            {isKeyVisible ? server.apiKey : (server.apiKey ? server.apiKey.slice(0, 8) + '••••••••' : 'None')}
+                            {server.hasApiKey ? server.apiKeyHint : 'None'}
                           </span>
-                          <button 
-                            type="button" 
-                            onClick={() => toggleKeyVisibility(server.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'inline-flex' }}
-                          >
-                            {isKeyVisible ? <EyeOff size={13} /> : <Eye size={13} />}
-                          </button>
                         </div>
                       </div>
 

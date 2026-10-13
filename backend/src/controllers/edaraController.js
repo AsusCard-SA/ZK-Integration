@@ -6,7 +6,7 @@ import edaraService from '../services/edaraService.js';
  */
 export const getEdaraServers = async (req, res) => {
   try {
-    const servers = edaraService.getServers();
+    const servers = edaraService.getPublicServers();
     res.status(200).json({
       success: true,
       count: servers.length,
@@ -26,8 +26,8 @@ export const getEdaraServers = async (req, res) => {
  */
 export const addEdaraServer = async (req, res) => {
   try {
-    const { name, url, apiKey, enabled } = req.body;
-    const newServer = edaraService.addServer({ name, url, apiKey, enabled });
+    const { name, url, apiKey, enabled, autoSync } = req.body;
+    const newServer = edaraService.addServer({ name, url, apiKey, enabled, autoSync });
     res.status(201).json({
       success: true,
       message: `Server "${newServer.name}" added successfully`,
@@ -47,8 +47,8 @@ export const addEdaraServer = async (req, res) => {
 export const updateEdaraServer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, url, apiKey, enabled } = req.body;
-    const updated = edaraService.updateServer(id, { name, url, apiKey, enabled });
+    const { name, url, apiKey, enabled, autoSync } = req.body;
+    const updated = edaraService.updateServer(id, { name, url, apiKey, enabled, autoSync });
     res.status(200).json({
       success: true,
       message: `Server "${updated.name}" updated successfully`,
@@ -126,7 +126,7 @@ export const previewEdaraPayload = async (req, res) => {
     }
 
     const formattedRecords = edaraService.formatRecords(filteredLogs);
-    const servers = edaraService.getServers();
+    const servers = edaraService.getPublicServers();
 
     res.status(200).json({
       success: true,

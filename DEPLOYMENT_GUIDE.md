@@ -54,3 +54,23 @@ pm2 startup
 ## 🔗 روابط الوصول بعد النشر:
 - **لوحة التحكم للمستخدمين**: `http://192.168.1.177`
 - **واجهة الـ API**: `http://192.168.1.177/api`
+
+---
+
+## 🔐 Edara server configuration & credentials (Production)
+
+Edara destination servers (including API keys) are stored in `edaraServers.json`, which is **not** in Git.
+
+1. **Before pulling this version on the server**, back up `backend\data\edaraServers.json`
+   (the commit removes it from Git tracking, so `git pull` deletes the tracked copy).
+2. Create a data directory outside the checkout, e.g. `C:\ProgramData\ZK-Integration`, and grant
+   only the app's service account (and Administrators) access:
+   ```cmd
+   icacls "C:\ProgramData\ZK-Integration" /inheritance:r /grant:r "<APP_USER>:(OI)(CI)M" "Administrators:(OI)(CI)F"
+   ```
+3. Set `EDARA_DATA_DIR=C:\ProgramData\ZK-Integration` in `backend\.env` (or the PM2 environment).
+   On first start, an existing `backend\data\edaraServers.json` is **copied** (never overwritten) into it.
+4. Optional `EDARA_API_URL` / `EDARA_API_KEY` only seed the primary server when no config file exists.
+5. API keys are never returned by the API; leaving the key blank when editing keeps the stored key.
+6. New destinations are created **disabled** and excluded from scheduled sync until enabled
+   (per-server "Include in scheduled auto-sync" flag).

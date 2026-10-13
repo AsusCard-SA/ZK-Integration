@@ -36,7 +36,7 @@ class SchedulerService {
       const edaraFormatted = edaraService.formatRecords(records);
 
       // 3. Dispatch to all active configured Edara Cloud HR API servers
-      const summary = await edaraService.syncAttendanceRecordsToServers(edaraFormatted, { serverId: 'all' });
+      const summary = await edaraService.syncAttendanceRecordsToServers(edaraFormatted, { serverId: 'all', autoSyncOnly: true });
 
       this.lastSync = new Date().toISOString();
       this.lastCount = edaraFormatted.length;
