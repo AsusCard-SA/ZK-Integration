@@ -66,6 +66,63 @@ export async function restartDevice() {
   return await res.json();
 }
 
+export async function fetchEdaraServers() {
+  const res = await fetch(`${API_BASE}/edara/servers`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Failed to fetch Edara servers' }));
+    throw new Error(err.message || 'Failed to fetch Edara servers');
+  }
+  return await res.json();
+}
+
+export async function createEdaraServer(serverData) {
+  const res = await fetch(`${API_BASE}/edara/servers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(serverData)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to create Edara server');
+  }
+  return data;
+}
+
+export async function updateEdaraServer(id, serverData) {
+  const res = await fetch(`${API_BASE}/edara/servers/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(serverData)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update Edara server');
+  }
+  return data;
+}
+
+export async function deleteEdaraServer(id) {
+  const res = await fetch(`${API_BASE}/edara/servers/${id}`, {
+    method: 'DELETE'
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to delete Edara server');
+  }
+  return data;
+}
+
+export async function testEdaraServer(id) {
+  const res = await fetch(`${API_BASE}/edara/servers/${id}/test`, {
+    method: 'POST'
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to test server connectivity');
+  }
+  return data;
+}
+
 export async function previewEdaraSync(params = {}) {
   const q = new URLSearchParams();
   if (params.userId) q.append('userId', params.userId);

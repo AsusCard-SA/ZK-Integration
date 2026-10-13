@@ -8,10 +8,11 @@ class SchedulerService {
     this.lastSync = null;
     this.lastStatus = 'Idle';
     this.lastCount = 0;
+    this.lastSummary = null;
   }
 
   /**
-   * Run automated sync job from MB2000 to Edara HR
+   * Run automated sync job from MB2000 to all defined Edara HR destination servers
    */
   async runAutoSync(triggerSource = 'Scheduled Job') {
     const timestamp = new Date().toLocaleString();
@@ -34,20 +35,33 @@ class SchedulerService {
       // 2. Format to Edara HR schema
       const edaraFormatted = edaraService.formatRecords(records);
 
-      // 3. Dispatch to Edara Cloud HR API
-      const result = await edaraService.syncAttendanceRecords(edaraFormatted);
+      // 3. Dispatch to all active configured Edara Cloud HR API servers
+      const summary = await edaraService.syncAttendanceRecordsToServers(edaraFormatted, { serverId: 'all' });
 
       this.lastSync = new Date().toISOString();
-      this.lastStatus = `Success: Synced ${edaraFormatted.length} records`;
       this.lastCount = edaraFormatted.length;
+      this.lastSummary = summary;
 
-      console.log(`✅ [CRON] Auto-sync SUCCESS! Sent ${edaraFormatted.length} punches to Edara HR.`);
-      console.log(`📄 Response:`, JSON.stringify(result));
+      if (summary.failCount === 0) {
+        this.lastStatus = `Success: Synced ${edaraFormatted.length} records to all ${summary.totalServers} servers`;
+        console.log(`✅ [CRON] Auto-sync SUCCESS! Sent ${edaraFormatted.length} punches to ${summary.totalServers} servers.`);
+      } else {
+        this.lastStatus = `Partial: Synced to ${summary.successCount}/${summary.totalServers} servers (${summary.failCount} failed)`;
+        console.warn(`⚠️ [CRON] Auto-sync PARTIAL: ${summary.successCount}/${summary.totalServers} succeeded.`);
+      }
+
+      summary.serverResults.forEach((res) => {
+        if (res.success) {
+          console.log(`   - [${res.serverName}]: ✅ SUCCESS (${res.status})`);
+        } else {
+          console.log(`   - [${res.serverName}]: ❌ FAILED (${res.error})`);
+        }
+      });
 
       return {
-        success: true,
+        success: summary.successCount > 0,
         count: edaraFormatted.length,
-        result
+        summary
       };
     } catch (error) {
       this.lastStatus = `Failed: ${error.message || 'Error'}`;
@@ -94,7 +108,8 @@ class SchedulerService {
       ],
       lastSync: this.lastSync,
       lastStatus: this.lastStatus,
-      lastCount: this.lastCount
+      lastCount: this.lastCount,
+      lastSummary: this.lastSummary
     };
   }
 }

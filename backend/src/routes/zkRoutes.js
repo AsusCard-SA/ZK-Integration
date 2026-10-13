@@ -11,6 +11,11 @@ import {
   executeCommand
 } from '../controllers/zkController.js';
 import {
+  getEdaraServers,
+  addEdaraServer,
+  updateEdaraServer,
+  deleteEdaraServer,
+  testEdaraServer,
   previewEdaraPayload,
   syncToEdara
 } from '../controllers/edaraController.js';
@@ -27,7 +32,14 @@ router.get('/users', getUsers);
 // Attendance logs
 router.get('/attendances', getAttendances);
 
-// Edara HR Integration Endpoints
+// Edara HR Integration - Servers & Credentials Management
+router.get('/edara/servers', getEdaraServers);
+router.post('/edara/servers', addEdaraServer);
+router.put('/edara/servers/:id', updateEdaraServer);
+router.delete('/edara/servers/:id', deleteEdaraServer);
+router.post('/edara/servers/:id/test', testEdaraServer);
+
+// Edara HR Sync & Schedules
 router.get('/edara/preview', previewEdaraPayload);
 router.post('/edara/sync', syncToEdara);
 router.get('/edara/scheduler-status', (req, res) => {
@@ -50,4 +62,3 @@ router.post('/disable', disableDevice);
 router.post('/execute-command', executeCommand);
 
 export default router;
-
