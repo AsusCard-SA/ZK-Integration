@@ -31,12 +31,13 @@ import {
   testEdaraServer 
 } from '../services/api';
 import { useTranslation } from '../context/LanguageContext';
+import { localDateKey } from '../services/date';
 
 export default function HRSyncPage({ users, attendances }) {
   const { t } = useTranslation();
   const [selectedUser, setSelectedUser] = useState('all');
   const [startDate, setStartDate] = useState(() => {
-    return new Date().toISOString().slice(0, 10);
+    return localDateKey(new Date());
   });
   const [endDate, setEndDate] = useState('');
   const [recordTypeDefault, setRecordTypeDefault] = useState('unknown');
@@ -108,10 +109,10 @@ export default function HRSyncPage({ users, attendances }) {
 
         let matchesDate = true;
         if (startDate) {
-          matchesDate = matchesDate && new Date(log.recordTime) >= new Date(startDate);
+          matchesDate = matchesDate && localDateKey(log.recordTime) >= startDate;
         }
         if (endDate) {
-          matchesDate = matchesDate && new Date(log.recordTime) <= new Date(`${endDate}T23:59:59`);
+          matchesDate = matchesDate && localDateKey(log.recordTime) <= endDate;
         }
 
         return matchesUser && matchesDate;

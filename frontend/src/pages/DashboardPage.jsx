@@ -11,16 +11,17 @@ import {
   Cpu
 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
+import { localDateKey } from '../services/date';
 
 export default function DashboardPage({ users, attendances, statusData, onNavigate }) {
   const { t } = useTranslation();
   // Calculations
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey(new Date());
   
   // Get all unique users who punched today
   const todayPunches = attendances.filter(log => {
     if (!log.recordTime) return false;
-    return new Date(log.recordTime).toISOString().slice(0, 10) === todayStr;
+    return localDateKey(log.recordTime) === todayStr;
   });
 
   const presentUserIds = new Set(todayPunches.map(p => String(p.deviceUserId)));

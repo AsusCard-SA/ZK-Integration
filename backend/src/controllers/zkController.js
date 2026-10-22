@@ -1,11 +1,14 @@
 import zkService from '../services/zkService.js';
+import { deviceConfig } from '../config/deviceConfig.js';
+import { deviceDateKey } from '../utils/deviceDate.js';
+import employeeReceiveService from '../services/employeeReceiveService.js';
 
 export const getStatus = async (req, res, next) => {
   try {
     const info = await zkService.getDeviceInfo();
     res.status(200).json({
       success: true,
-      message: 'Connected to ZKTeco MB2000 successfully',
+      message: `Connected to ZKTeco ${deviceConfig.model} successfully`,
       data: info
     });
   } catch (error) {
@@ -46,13 +49,11 @@ export const getAttendances = async (req, res, next) => {
     }
 
     if (startDate) {
-      const start = new Date(startDate);
-      filteredLogs = filteredLogs.filter(log => new Date(log.recordTime) >= start);
+      filteredLogs = filteredLogs.filter(log => deviceDateKey(log.recordTime, deviceConfig.timezone) >= startDate);
     }
 
     if (endDate) {
-      const end = new Date(endDate);
-      filteredLogs = filteredLogs.filter(log => new Date(log.recordTime) <= end);
+      filteredLogs = filteredLogs.filter(log => deviceDateKey(log.recordTime, deviceConfig.timezone) <= endDate);
     }
 
     res.status(200).json({
@@ -161,6 +162,58 @@ export const executeCommand = async (req, res, next) => {
       success: false,
       message: 'Failed to execute command on device',
       error: error.message || error
+    });
+  }
+};
+
+// node-zklib rejects with ZKError objects, which carry no .message of their own
+function deviceErrorText(error) {
+  if (typeof error?.toast === 'function') return error.toast();
+  return error?.message || String(error);
+}
+
+function parseUid(value) {
+  const uid = Number(value);
+  return Number.isInteger(uid) && uid > 0 && uid <= 65535 ? uid : null;
+}
+
+export const renameDeviceUser = async (req, res, next) => {
+  const uid = parseUid(req.params.uid);
+  const userId = req.body?.userId;
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!uid || userId === undefined || userId === null || userId === '') {
+    return res.status(400).json({ success: false, message: 'uid (path) and userId (body) are required' });
+  }
+  if (!name) {
+    return res.status(400).json({ success: false, message: 'name is required' });
+  }
+  try {
+    const data = await zkService.renameUser(uid, String(userId), name);
+    res.status(200).json({ success: true, message: `User ${data.userId} renamed`, data });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: 'Failed to rename user on device',
+      error: deviceErrorText(error)
+    });
+  }
+};
+
+export const deleteDeviceUser = async (req, res, next) => {
+  const uid = parseUid(req.params.uid);
+  const userId = req.query.userId;
+  if (!uid || !userId) {
+    return res.status(400).json({ success: false, message: 'uid (path) and userId (query) are required' });
+  }
+  try {
+    const data = await zkService.deleteUser(uid, String(userId));
+    const unlocked = employeeReceiveService.markRemovedFromDevice(data.userId);
+    res.status(200).json({ success: true, message: `User ${data.userId} deleted from device`, data, receivedEmployeesUnlocked: unlocked });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: 'Failed to delete user from device',
+      error: deviceErrorText(error)
     });
   }
 };

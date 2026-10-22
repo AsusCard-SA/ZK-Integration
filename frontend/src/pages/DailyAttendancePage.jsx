@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, Download, Search, CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
+import { localDateKey } from '../services/date';
 
 export default function DailyAttendancePage({ users, attendances }) {
   const { t } = useTranslation();
 
   // Default to today or latest available punch date
   const latestDateStr = useMemo(() => {
-    if (!attendances.length) return new Date().toISOString().slice(0, 10);
+    if (!attendances.length) return localDateKey(new Date());
     const sorted = [...attendances].sort((a, b) => new Date(b.recordTime) - new Date(a.recordTime));
-    return new Date(sorted[0].recordTime).toISOString().slice(0, 10);
+    return localDateKey(sorted[0].recordTime);
   }, [attendances]);
 
   const [selectedDate, setSelectedDate] = useState(latestDateStr);
@@ -20,7 +21,7 @@ export default function DailyAttendancePage({ users, attendances }) {
   const dailyMatrix = useMemo(() => {
     const dayPunches = attendances.filter(log => {
       if (!log.recordTime) return false;
-      return new Date(log.recordTime).toISOString().slice(0, 10) === selectedDate;
+      return localDateKey(log.recordTime) === selectedDate;
     });
 
     const userPunchesMap = {};

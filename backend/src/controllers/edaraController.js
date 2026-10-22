@@ -1,4 +1,6 @@
 import zkService from '../services/zkService.js';
+import { deviceConfig } from '../config/deviceConfig.js';
+import { deviceDateKey } from '../utils/deviceDate.js';
 import edaraService from '../services/edaraService.js';
 
 /**
@@ -115,10 +117,10 @@ export const previewEdaraPayload = async (req, res) => {
       filteredLogs = filteredLogs.filter(log => String(log.deviceUserId || log.userSn) === String(userId));
     }
     if (startDate) {
-      filteredLogs = filteredLogs.filter(log => new Date(log.recordTime) >= new Date(startDate));
+      filteredLogs = filteredLogs.filter(log => deviceDateKey(log.recordTime, deviceConfig.timezone) >= startDate);
     }
     if (endDate) {
-      filteredLogs = filteredLogs.filter(log => new Date(log.recordTime) <= new Date(`${endDate}T23:59:59`));
+      filteredLogs = filteredLogs.filter(log => deviceDateKey(log.recordTime, deviceConfig.timezone) <= endDate);
     }
 
     if (limit) {
@@ -163,10 +165,10 @@ export const syncToEdara = async (req, res) => {
         filteredLogs = filteredLogs.filter(log => String(log.deviceUserId || log.userSn) === String(userId));
       }
       if (startDate) {
-        filteredLogs = filteredLogs.filter(log => new Date(log.recordTime) >= new Date(startDate));
+        filteredLogs = filteredLogs.filter(log => deviceDateKey(log.recordTime, deviceConfig.timezone) >= startDate);
       }
       if (endDate) {
-        filteredLogs = filteredLogs.filter(log => new Date(log.recordTime) <= new Date(`${endDate}T23:59:59`));
+        filteredLogs = filteredLogs.filter(log => deviceDateKey(log.recordTime, deviceConfig.timezone) <= endDate);
       }
 
       recordsToSend = edaraService.formatRecords(filteredLogs);

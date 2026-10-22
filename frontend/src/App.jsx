@@ -7,14 +7,16 @@ import RawLogsPage from './pages/RawLogsPage';
 import ReportsPage from './pages/ReportsPage';
 import DevicePage from './pages/DevicePage';
 import HRSyncPage from './pages/HRSyncPage';
-import { fetchDeviceStatus, fetchUsers, fetchAttendances } from './services/api';
+import ApiSettingsPage from './pages/ApiSettingsPage';
+import { fetchDeviceStatus, fetchUsers, fetchAttendances, fetchDeviceConfig } from './services/api';
 import { RefreshCw, Radio, Bell, Globe } from 'lucide-react';
 import { useTranslation } from './context/LanguageContext';
 
 export default function App() {
-  const { t, lang, toggleLanguage } = useTranslation();
+  const { t, lang, toggleLanguage, setDeviceDetails } = useTranslation();
   const [activePage, setActivePage] = useState('dashboard');
   const [statusData, setStatusData] = useState(null);
+  const [deviceConfig, setDeviceConfig] = useState(null);
   const [users, setUsers] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +36,18 @@ export default function App() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [statusRes, usersRes, attRes] = await Promise.allSettled([
+      const [configRes, statusRes, usersRes, attRes] = await Promise.allSettled([
+        fetchDeviceConfig(),
         fetchDeviceStatus(),
         fetchUsers(),
         fetchAttendances()
       ]);
 
-      if (statusRes.status === 'fulfilled') setStatusData(statusRes.value);
+      if (configRes.status === 'fulfilled') {
+        setDeviceConfig(configRes.value);
+        setDeviceDetails(configRes.value);
+      }
+      setStatusData(statusRes.status === 'fulfilled' ? statusRes.value : null);
       if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data || []);
       if (attRes.status === 'fulfilled') setAttendances(attRes.value.data || []);
     } catch (err) {
@@ -53,6 +60,10 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (deviceConfig?.model) document.title = `ZKTeco ${deviceConfig.model} Dashboard`;
+  }, [deviceConfig]);
 
   const handleSelectEmployee = (userId) => {
     setSelectedUserFilter(userId);
@@ -68,6 +79,7 @@ export default function App() {
         activePage={activePage} 
         setActivePage={setActivePage} 
         statusData={statusData}
+        deviceConfig={deviceConfig}
       />
 
       {/* Main Content Area */}
@@ -139,6 +151,7 @@ export default function App() {
               users={users}
               attendances={attendances}
               onSelectEmployee={handleSelectEmployee}
+              onRefresh={loadData}
             />
           )}
 
@@ -157,9 +170,12 @@ export default function App() {
             />
           )}
 
+          {activePage === 'api-settings' && <ApiSettingsPage />}
+
           {activePage === 'device' && (
             <DevicePage 
               statusData={statusData}
+              deviceConfig={deviceConfig}
               onRefresh={loadData}
             />
           )}

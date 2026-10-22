@@ -1,11 +1,73 @@
 import React, { useState } from 'react';
-import { Search, Shield, User, CreditCard, Download, UserPlus, Filter } from 'lucide-react';
+import { Search, Shield, User, CreditCard, Download, UserPlus, Filter, Edit3, Trash2, Check, X, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
+import { renameDeviceUser, deleteDeviceUser } from '../services/api';
 
-export default function EmployeesPage({ users, attendances, onSelectEmployee }) {
+// The device stores names in 24 bytes
+const MAX_NAME_LENGTH = 23;
+
+export default function EmployeesPage({ users, attendances, onSelectEmployee, onRefresh }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [editingUid, setEditingUid] = useState(null);
+  const [nameDraft, setNameDraft] = useState('');
+  const [busyUid, setBusyUid] = useState(null);
+  const [notice, setNotice] = useState(null);
+
+  const startEdit = (user) => {
+    setEditingUid(user.uid);
+    setNameDraft(user.name || '');
+    setNotice(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingUid(null);
+    setNameDraft('');
+  };
+
+  const saveName = async (user) => {
+    const name = nameDraft.trim();
+    if (!name) {
+      setNotice({ success: false, message: t('nameRequired') });
+      return;
+    }
+    if (name === (user.name || '')) {
+      cancelEdit();
+      return;
+    }
+    setBusyUid(user.uid);
+    try {
+      await renameDeviceUser(user.uid, user.userId, name);
+      setNotice({ success: true, message: t('userRenamed').replace('{id}', user.userId) });
+      cancelEdit();
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      setNotice({ success: false, message: err.message });
+    } finally {
+      setBusyUid(null);
+    }
+  };
+
+  const removeUser = async (user) => {
+    let msg = t('deleteDeviceUserConfirm')
+      .replace('{name}', user.name || `#${user.userId}`)
+      .replace('{id}', user.userId);
+    if (user.role === 14) msg += t('adminDeleteWarning');
+    if (!window.confirm(msg)) return;
+
+    setBusyUid(user.uid);
+    setNotice(null);
+    try {
+      await deleteDeviceUser(user.uid, user.userId);
+      setNotice({ success: true, message: t('userDeleted').replace('{id}', user.userId) });
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      setNotice({ success: false, message: err.message });
+    } finally {
+      setBusyUid(null);
+    }
+  };
 
   // Count punches per employee
   const punchCounts = {};
@@ -95,6 +157,23 @@ export default function EmployeesPage({ users, attendances, onSelectEmployee }) 
         </div>
       </div>
 
+      {notice && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 16,
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            background: notice.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+            border: `1px solid ${notice.success ? 'rgba(16, 185, 129, 0.35)' : 'rgba(244, 63, 94, 0.35)'}`,
+            color: notice.success ? '#34d399' : '#fb7185'
+          }}
+        >
+          {notice.message}
+        </div>
+      )}
+
       {/* Employee Cards Grid */}
       <div className="user-grid">
         {filteredUsers.map((user) => {
@@ -115,9 +194,66 @@ export default function EmployeesPage({ users, attendances, onSelectEmployee }) 
                 {initials}
               </div>
               <div className="user-details">
-                <div className="user-name">
-                  {user.name || `${t('userId')} #${user.userId}`}
-                </div>
+                {editingUid === user.uid ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      className="input"
+                      value={nameDraft}
+                      maxLength={MAX_NAME_LENGTH}
+                      autoFocus
+                      disabled={busyUid === user.uid}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveName(user);
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                      style={{ flex: 1, minWidth: 0, padding: '5px 8px', fontSize: '0.85rem' }}
+                    />
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => saveName(user)}
+                      disabled={busyUid === user.uid}
+                      style={{ padding: '5px 7px' }}
+                      title={t('saveNameBtn')}
+                    >
+                      {busyUid === user.uid ? <RefreshCw size={13} className="spinner" /> : <Check size={13} color="#34d399" />}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={cancelEdit}
+                      disabled={busyUid === user.uid}
+                      style={{ padding: '5px 7px' }}
+                      title={t('cancelBtn')}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="user-name" style={{ flex: 1, minWidth: 0 }}>
+                      {user.name || `${t('userId')} #${user.userId}`}
+                    </div>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={(e) => { e.stopPropagation(); startEdit(user); }}
+                      disabled={busyUid !== null}
+                      style={{ padding: '4px 6px' }}
+                      title={t('editNameBtn')}
+                    >
+                      <Edit3 size={12} />
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={(e) => { e.stopPropagation(); removeUser(user); }}
+                      disabled={busyUid !== null}
+                      style={{ padding: '4px 6px', color: '#fb7185' }}
+                      title={t('deleteUserBtn')}
+                    >
+                      {busyUid === user.uid ? <RefreshCw size={12} className="spinner" /> : <Trash2 size={12} />}
+                    </button>
+                  </div>
+                )}
                 <div className="user-meta">
                   <span className="mono">{t('userId')}: {user.userId}</span>
                   <span>•</span>

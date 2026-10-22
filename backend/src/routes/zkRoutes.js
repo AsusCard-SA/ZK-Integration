@@ -8,7 +8,9 @@ import {
   disableDevice,
   syncTime,
   restartDevice,
-  executeCommand
+  executeCommand,
+  renameDeviceUser,
+  deleteDeviceUser
 } from '../controllers/zkController.js';
 import {
   getEdaraServers,
@@ -28,6 +30,8 @@ router.get('/status', getStatus);
 
 // User management
 router.get('/users', getUsers);
+router.put('/users/:uid', renameDeviceUser);
+router.delete('/users/:uid', deleteDeviceUser);
 
 // Attendance logs
 router.get('/attendances', getAttendances);
