@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { networkErrorMessage } from '../utils/networkError.js';
 
 dotenv.config();
 
@@ -38,7 +39,7 @@ class EdaraService {
 
       if (fs.existsSync(SERVERS_FILE)) return;
 
-      if (LEGACY_SERVERS_FILE !== SERVERS_FILE && fs.existsSync(LEGACY_SERVERS_FILE)) {
+      if (process.env.EDARA_IMPORT_LEGACY !== 'false' && LEGACY_SERVERS_FILE !== SERVERS_FILE && fs.existsSync(LEGACY_SERVERS_FILE)) {
         fs.copyFileSync(LEGACY_SERVERS_FILE, SERVERS_FILE);
         try { fs.chmodSync(SERVERS_FILE, 0o600); } catch { /* not supported on Windows */ }
         console.log(`Edara servers config copied from ${LEGACY_SERVERS_FILE} to ${SERVERS_FILE}`);
@@ -47,7 +48,7 @@ class EdaraService {
 
       // Seed a primary server only when credentials are supplied via environment.
       const initialServers = [];
-      if (this.apiUrl && this.apiKey) {
+      if (process.env.EDARA_SEED_ON_EMPTY !== 'false' && this.apiUrl && this.apiKey) {
         const now = new Date().toISOString();
         initialServers.push({
           id: 'srv_primary',
@@ -235,8 +236,8 @@ class EdaraService {
         success: false,
         status: 0,
         statusText: 'Network Error',
-        error: error.name === 'AbortError' ? 'Connection timed out (10s)' : (error.message || 'Network error'),
-        message: error.name === 'AbortError' ? 'Connection timed out (10s)' : (error.message || 'Network error')
+        error: networkErrorMessage(error, 'Connection timed out (10s)'),
+        message: networkErrorMessage(error, 'Connection timed out (10s)')
       };
     }
   }
@@ -353,7 +354,7 @@ class EdaraService {
             url: server.url,
             success: false,
             status: 0,
-            error: err.name === 'AbortError' ? 'Request timed out after 20s' : (err.message || 'Network error'),
+            error: networkErrorMessage(err, 'Request timed out after 20s'),
             data: null
           };
         }

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Download, Calendar, Filter, UserCheck, Inbox, Clock } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
+import { localDateKey } from '../services/date';
 
 export default function RawLogsPage({ attendances, usersMap, selectedUserIdFilter }) {
   const { t } = useTranslation();
@@ -37,10 +38,10 @@ export default function RawLogsPage({ attendances, usersMap, selectedUserIdFilte
       
       let matchesDate = true;
       if (startDate) {
-        matchesDate = matchesDate && new Date(log.recordTime) >= new Date(startDate);
+        matchesDate = matchesDate && localDateKey(log.recordTime) >= startDate;
       }
       if (endDate) {
-        matchesDate = matchesDate && new Date(log.recordTime) <= new Date(`${endDate}T23:59:59`);
+        matchesDate = matchesDate && localDateKey(log.recordTime) <= endDate;
       }
 
       return matchesSearch && matchesUser && matchesDate;

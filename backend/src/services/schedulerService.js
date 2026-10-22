@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import zkService from './zkService.js';
 import edaraService from './edaraService.js';
+import { deviceConfig } from '../config/deviceConfig.js';
 
 class SchedulerService {
   constructor() {
@@ -85,12 +86,12 @@ class SchedulerService {
     // 11:00 AM Cron
     const job11AM = cron.schedule('0 11 * * *', () => {
       this.runAutoSync('Daily 11:00 AM Schedule');
-    });
+    }, deviceConfig.timezone ? { timezone: deviceConfig.timezone } : {});
 
     // 08:00 PM Cron (20:00)
     const job08PM = cron.schedule('0 20 * * *', () => {
       this.runAutoSync('Daily 08:00 PM Schedule');
-    });
+    }, deviceConfig.timezone ? { timezone: deviceConfig.timezone } : {});
 
     this.jobs.push({ name: '11:00 AM Job', expression: '0 11 * * *', job: job11AM });
     this.jobs.push({ name: '08:00 PM Job', expression: '0 20 * * *', job: job08PM });
@@ -106,6 +107,7 @@ class SchedulerService {
         { time: '11:00 AM Daily', cron: '0 11 * * *' },
         { time: '08:00 PM Daily', cron: '0 20 * * *' }
       ],
+      timezone: deviceConfig.timezone || 'server local time',
       lastSync: this.lastSync,
       lastStatus: this.lastStatus,
       lastCount: this.lastCount,

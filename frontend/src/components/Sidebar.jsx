@@ -8,11 +8,12 @@ import {
   Cpu,
   Fingerprint,
   Radio,
-  Send
+  Send,
+  KeyRound
 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 
-export default function Sidebar({ activePage, setActivePage, statusData }) {
+export default function Sidebar({ activePage, setActivePage, statusData, deviceConfig }) {
   const { t } = useTranslation();
   const isOnline = statusData?.success && statusData?.data?.status === 'online';
 
@@ -24,6 +25,7 @@ export default function Sidebar({ activePage, setActivePage, statusData }) {
     { id: 'logs', label: t('menuLogs'), icon: FileText },
     { id: 'reports', label: t('menuReports'), icon: BarChart3 },
     { id: 'device', label: t('menuDevice'), icon: Cpu },
+    { id: 'api-settings', label: t('menuApiSettings'), icon: KeyRound },
   ];
 
   return (
@@ -43,7 +45,7 @@ export default function Sidebar({ activePage, setActivePage, statusData }) {
           <Radio size={13} color={isOnline ? '#10b981' : '#f43f5e'} />
           <span>{t('deviceTarget')}</span>
         </div>
-        <div className="sidebar-status-ip mono">192.168.1.147:4370</div>
+        <div className="sidebar-status-ip mono">{deviceConfig ? `${deviceConfig.ip}:${deviceConfig.port}` : 'Loading...'}</div>
         <div className={`sidebar-status-pill ${isOnline ? 'online' : 'offline'}`}>
           <span className="beacon-dot" />
           <span>{isOnline ? t('online') : t('disconnected')}</span>
@@ -69,7 +71,7 @@ export default function Sidebar({ activePage, setActivePage, statusData }) {
 
       <div className="sidebar-footer">
         <div className="sidebar-footer-text">
-          ZK MB2000 Pro • v1.0.0
+          ZK {deviceConfig?.model || 'MB2000'} Pro • v1.0.0
         </div>
       </div>
     </aside>

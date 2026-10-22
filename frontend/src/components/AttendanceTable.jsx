@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { localDateKey } from '../services/date';
 import { Search, Download, Calendar, Filter, UserCheck, Inbox } from 'lucide-react';
 
 export default function AttendanceTable({ attendances, usersMap, loading }) {
@@ -32,7 +33,7 @@ export default function AttendanceTable({ attendances, usersMap, loading }) {
       
       let matchesDate = true;
       if (dateFilter) {
-        const logDate = new Date(log.recordTime).toISOString().slice(0, 10);
+        const logDate = localDateKey(log.recordTime);
         matchesDate = logDate === dateFilter;
       }
 

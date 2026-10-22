@@ -1,5 +1,11 @@
 const API_BASE = '/api/zk';
 
+export async function fetchDeviceConfig() {
+  const res = await fetch(`${API_BASE}/config`);
+  if (!res.ok) throw new Error('Failed to load device configuration');
+  return (await res.json()).data;
+}
+
 export async function fetchDeviceStatus() {
   const res = await fetch(`${API_BASE}/status`);
   if (!res.ok) {
@@ -169,4 +175,47 @@ export async function executeDeviceCommand(commandId, data = '') {
     body: JSON.stringify({ commandId, data })
   });
   return await res.json();
+}
+
+// ---------- Employee Receiving API (ZK Central) ----------
+const EMPLOYEES_API = '/api/employees';
+
+async function employeesRequest(path, { method = 'GET', body } = {}) {
+  const res = await fetch(`${EMPLOYEES_API}${path}`, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || `Request failed with status ${res.status}`);
+  }
+  return data;
+}
+
+export const fetchEmployeeApiSettings = () => employeesRequest('/settings');
+export const setEmployeeApiEnabled = (enabled) => employeesRequest('/settings', { method: 'PUT', body: { enabled } });
+export const generateEmployeeApiToken = () => employeesRequest('/settings/token', { method: 'POST' });
+export const fetchReceivedEmployees = () => employeesRequest('/received');
+export const approveReceivedEmployees = (ids) => employeesRequest('/received/approve', { method: 'POST', body: { ids } });
+export const setReceivedEmployeeDeviceId = (id, deviceUserId) => employeesRequest(`/received/${encodeURIComponent(id)}/device-user-id`, { method: 'PUT', body: { deviceUserId } });
+export const deleteReceivedEmployee = (id) => employeesRequest(`/received/${encodeURIComponent(id)}`, { method: 'DELETE' });
+export const pushApprovedEmployeesToDevice = (ids) => employeesRequest('/received/push-to-device', { method: 'POST', body: { ids } });
+
+export async function renameDeviceUser(uid, userId, name) {
+  const res = await fetch(`${API_BASE}/users/${uid}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, name })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || 'Failed to rename user');
+  return data;
+}
+
+export async function deleteDeviceUser(uid, userId) {
+  const res = await fetch(`${API_BASE}/users/${uid}?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || 'Failed to delete user');
+  return data;
 }

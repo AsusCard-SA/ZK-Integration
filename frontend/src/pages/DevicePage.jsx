@@ -23,7 +23,7 @@ import {
 } from '../services/api';
 import { useTranslation } from '../context/LanguageContext';
 
-export default function DevicePage({ statusData, onRefresh }) {
+export default function DevicePage({ statusData, deviceConfig, onRefresh }) {
   const { t } = useTranslation();
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -31,8 +31,8 @@ export default function DevicePage({ statusData, onRefresh }) {
 
   const isOnline = statusData?.success && statusData?.data?.status === 'online';
   const info = statusData?.data?.deviceInfo || {};
-  const targetIp = statusData?.data?.ip || '192.168.1.147';
-  const targetPort = statusData?.data?.port || '4370';
+  const targetIp = deviceConfig?.ip || statusData?.data?.ip || '—';
+  const targetPort = deviceConfig?.port || statusData?.data?.port || '—';
 
   const handleAction = async (actionName, apiFn) => {
     try {
@@ -53,7 +53,7 @@ export default function DevicePage({ statusData, onRefresh }) {
   };
 
   const handleRestart = () => {
-    if (window.confirm('Send RESTART command to ZKTeco MB2000 terminal? The device will reboot.')) {
+    if (window.confirm(`Send RESTART command to ZKTeco ${deviceConfig?.model || 'device'} terminal? The device will reboot.`)) {
       handleAction(t('rebootTitle'), restartDevice);
     }
   };

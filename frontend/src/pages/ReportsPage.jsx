@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { BarChart3, Download, Calendar, Search, Award, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
+import { localDateKey } from '../services/date';
 
 export default function ReportsPage({ users, attendances }) {
   const { t } = useTranslation();
@@ -13,7 +14,7 @@ export default function ReportsPage({ users, attendances }) {
   const reportData = useMemo(() => {
     const monthPunches = attendances.filter(a => {
       if (!a.recordTime) return false;
-      return a.recordTime.startsWith(selectedMonth);
+      return localDateKey(a.recordTime).startsWith(selectedMonth);
     });
 
     return users.map(user => {
@@ -22,7 +23,7 @@ export default function ReportsPage({ users, attendances }) {
 
       const daysMap = {};
       userLogs.forEach(log => {
-        const dayStr = log.recordTime.slice(0, 10);
+        const dayStr = localDateKey(log.recordTime);
         if (!daysMap[dayStr]) daysMap[dayStr] = [];
         daysMap[dayStr].push(new Date(log.recordTime));
       });
